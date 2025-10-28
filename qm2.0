@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寻根 - 自我探索工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #fef9f4;
+            color: #333;
+            line-height: 1.6;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .title {
+            font-size: 2.2em;
+            color: #e88ba3;
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1em;
+        }
+
+        .tree-section {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .tree-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            min-height: 400px;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .input-section {
+            background: white;
+            padding: 25px;
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.1);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 100;
+        }
+
+        #inputPrompt {
+            font-size: 1.3em;
+            color: #e88ba3;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #inputField {
+            flex: 1;
+            min-height: 60px;
+            max-height: 120px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1.1em;
+            resize: none;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        #inputField:focus {
+            outline: none;
+            border-color: #a0d2e8;
+            box-shadow: 0 0 0 3px rgba(160, 210, 232, 0.2);
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        #confirmBtn {
+            background: #e88ba3;
+            color: white;
+        }
+
+        #confirmBtn:hover {
+            background: #d87a92;
+            transform: translateY(-2px);
+        }
+
+        #continueBtn {
+            background: #a0d2e8;
+            color: white;
+            display: none;
+        }
+
+        #continueBtn:hover {
+            background: #90c2d8;
+            transform: translateY(-2px);
+        }
+
+        /* 树状图样式 */
+        #treeDiagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .node {
+            padding: 15px 25px;
+            border-radius: 25px;
+            text-align: center;
+            margin: 8px auto;
+            max-width: 500px;
+            position: relative;
+            word-wrap: break-word;
+            white-space: normal;
+            line-height: 1.4;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+        }
+
+        .node:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .root-node {
+            background: #e88ba3;
+            color: white;
+            border-radius: 35px;
+            font-size: 1.3em;
+            padding: 20px 35px;
+            font-weight: bold;
+        }
+
+        .question-node {
+            background: #a0d2e8;
+            color: white;
+            font-weight: 500;
+        }
+
+        .answer-node {
+            background: #f5e8a3;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .connector {
+            width: 2px;
+            background: #000;
+            height: 25px;
+            margin: 0 auto;
+        }
+
+        .branch-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .branch-btn {
+            padding: 6px 12px;
+            font-size: 0.8em;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .branch-btn:hover {
+            background: white;
+            transform: translateY(-1px);
+        }
+
+        /* 浮动保存按钮 */
+        .save-float-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: #e88ba3;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            font-weight: 500;
+            z-index: 50;
+        }
+
+        .tree-container:hover .save-float-btn {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .save-float-btn:hover {
+            background: #d87a92;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .save-float-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: none;
+            text-align: center;
+            color: #e88ba3;
+            font-size: 1.1em;
+            margin: 10px 0;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { color: rgba(232, 139, 163, 0); }
+            40% { color: rgba(232, 139, 163, 1); }
+            60%, 100% { color: rgba(232, 139, 163, 0); }
+        }
+
+        /* 滚动条样式 */
+        .tree-section::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .tree-section::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .tree-section::-webkit-scrollbar-thumb {
+            background: #e88ba3;
+            border-radius: 4px;
+        }
+
+        .tree-section::-webkit-scrollbar-thumb:hover {
+            background: #d87a92;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="title">寻根 🌿</h1>
+        <p class="subtitle">自我探索工具 · 找到内心困惑的根源</p>
+    </div>
+
+    <div class="tree-section" id="treeSection">
+        <div class="tree-container" id="treeContainer">
+            <button class="save-float-btn" id="saveFloatBtn">保存为PNG</button>
+            <div class="loading" id="loadingIndicator">正在生成图片</div>
+            <div id="treeDiagram"></div>
+        </div>
+    </div>
+
+    <div class="input-section">
+        <div id="inputPrompt">你当下的困惑是什么</div>
+        <div class="input-group">
+            <textarea id="inputField" placeholder="在这里写下你的想法..."></textarea>
+            <div class="action-buttons">
+                <button id="confirmBtn">确定</button>
+                <button id="continueBtn">继续提问</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class RootFinder {
+            constructor() {
+                this.nodes = [];
+                this.currentState = 'root';
+                this.init();
+            }
+
+            init() {
+                this.inputField = document.getElementById('inputField');
+                this.inputPrompt = document.getElementById('inputPrompt');
+                this.confirmBtn = document.getElementById('confirmBtn');
+                this.continueBtn = document.getElementById('continueBtn');
+                this.saveFloatBtn = document.getElementById('saveFloatBtn');
+                this.treeDiagram = document.getElementById('treeDiagram');
+                this.treeContainer = document.getElementById('treeContainer');
+                this.treeSection = document.getElementById('treeSection');
+                this.loadingIndicator = document.getElementById('loadingIndicator');
+
+                this.bindEvents();
+                this.adjustInputHeight();
+            }
+
+            bindEvents() {
+                this.confirmBtn.addEventListener('click', () => this.addNode());
+                this.continueBtn.addEventListener('click', () => this.continueQuestion());
+                this.saveFloatBtn.addEventListener('click', () => this.exportDiagram());
+                
+                this.inputField.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.addNode();
+                    }
+                });
+
+                this.inputField.addEventListener('input', () => {
+                    this.adjustInputHeight();
+                });
+
+                // 自动滚动到底部当新节点添加时
+                this.treeSection.addEventListener('DOMNodeInserted', () => {
+                    setTimeout(() => {
+                        this.scrollToBottom();
+                    }, 100);
+                });
+            }
+
+            adjustInputHeight() {
+                this.inputField.style.height = 'auto';
+                this.inputField.style.height = Math.min(this.inputField.scrollHeight, 120) + 'px';
+            }
+
+            scrollToBottom() {
+                this.treeSection.scrollTop = this.treeSection.scrollHeight;
+            }
+
+            addNode() {
+                const text = this.inputField.value.trim();
+                if (!text) return;
+
+                const node = {
+                    id: Date.now(),
+                    type: this.currentState === 'root' ? 'root' : 
+                         this.currentState === 'question' ? 'question' : 'answer',
+                    text: text,
+                    parentId: this.nodes.length > 0 ? this.nodes[this.nodes.length-1].id : null
+                };
+
+                this.nodes.push(node);
+                this.renderTree();
+
+                // 更新状态
+                if (this.currentState === 'root') {
+                    this.currentState = 'question';
+                    this.inputPrompt.textContent = '请输入你的问题';
+                } else if (this.currentState === 'question') {
+                    this.currentState = 'answer';
+                    this.inputPrompt.textContent = '请输入你的回答';
+                } else {
+                    this.currentState = 'question';
+                    this.inputPrompt.textContent = '请输入你的问题';
+                    this.continueBtn.style.display = 'block';
+                }
+
+                this.inputField.value = '';
+                this.adjustInputHeight();
+                this.inputField.focus();
+            }
+
+            continueQuestion() {
+                this.continueBtn.style.display = 'none';
+                this.inputField.focus();
+            }
+
+            renderTree() {
+                this.treeDiagram.innerHTML = '';
+                
+                this.nodes.forEach((node, index) => {
+                    // 添加连接线（除了第一个节点）
+                    if (index > 0) {
+                        const connector = document.createElement('div');
+                        connector.className = 'connector';
+                        this.treeDiagram.appendChild(connector);
+                    }
+
+                    // 添加节点
+                    const nodeElement = document.createElement('div');
+                    nodeElement.className = `node ${node.type}-node`;
+                    
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = node.text;
+                    textSpan.style.display = 'inline-block';
+                    textSpan.style.maxWidth = '100%';
+                    textSpan.style.wordWrap = 'break-word';
+                    
+                    nodeElement.appendChild(textSpan);
+                    nodeElement.onclick = (e) => {
+                        e.stopPropagation();
+                        this.showBranchOptions(nodeElement, node.id);
+                    };
+                    
+                    this.treeDiagram.appendChild(nodeElement);
+                });
+
+                // 确保树状图容器有足够高度
+                this.treeContainer.style.minHeight = Math.max(400, this.nodes.length * 100) + 'px';
+            }
+
+            showBranchOptions(element, nodeId) {
+                const existingButtons = element.querySelector('.branch-buttons');
+                if (existingButtons) {
+                    existingButtons.remove();
+                    return;
+                }
+
+                const buttons = document.createElement('div');
+                buttons.className = 'branch-buttons';
+
+                const addQuestion = document.createElement('button');
+                addQuestion.className = 'branch-btn';
+                addQuestion.textContent = '添加问题分支';
+                addQuestion.onclick = (e) => {
+                    e.stopPropagation();
+                    this.addBranch(nodeId, 'question');
+                };
+
+                const addAnswer = document.createElement('button');
+                addAnswer.className = 'branch-btn';
+                addAnswer.textContent = '添加回答分支';
+                addAnswer.onclick = (e) => {
+                    e.stopPropagation();
+                    this.addBranch(nodeId, 'answer');
+                };
+
+                buttons.appendChild(addQuestion);
+                buttons.appendChild(addAnswer);
+                element.appendChild(buttons);
+            }
+
+            addBranch(parentId, type) {
+                const text = prompt(`请输入${type === 'question' ? '问题' : '回答'}:`);
+                if (text) {
+                    const node = {
+                        id: Date.now(),
+                        type: type,
+                        text: text,
+                        parentId: parentId
+                    };
+                    this.nodes.push(node);
+                    this.renderTree();
+                    this.scrollToBottom();
+                }
+            }
+
+            async exportDiagram() {
+                if (this.nodes.length === 0) {
+                    alert('请先创建至少一个节点再保存！');
+                    return;
+                }
+
+                try {
+                    this.loadingIndicator.style.display = 'block';
+                    this.saveFloatBtn.disabled = true;
+                    this.saveFloatBtn.textContent = '生成中...';
+
+                    const canvas = await html2canvas(this.treeContainer, {
+                        backgroundColor: '#ffffff',
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: false,
+                        logging: false,
+                        width: this.treeContainer.scrollWidth,
+                        height: this.treeContainer.scrollHeight,
+                        onclone: (clonedDoc) => {
+                            const cloneSaveBtn = clonedDoc.getElementById('saveFloatBtn');
+                            const cloneLoading = clonedDoc.getElementById('loadingIndicator');
+                            if (cloneSaveBtn) cloneSaveBtn.style.display = 'none';
+                            if (cloneLoading) cloneLoading.style.display = 'none';
+                        }
+                    });
+
+                    const link = document.createElement('a');
+                    const timestamp = new Date().toLocaleString('zh-CN').replace(/[/:\s]/g, '-');
+                    link.download = `寻根-自我探索-${timestamp}.png`;
+                    link.href = canvas.toDataURL('image/png', 1.0);
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                } catch (error) {
+                    console.error('导出失败:', error);
+                    alert('保存失败，请重试。确保网络连接正常。');
+                } finally {
+                    this.loadingIndicator.style.display = 'none';
+                    this.saveFloatBtn.disabled = false;
+                    this.saveFloatBtn.textContent = '保存为PNG';
+                }
+            }
+        }
+
+        // 启动应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new RootFinder();
+        });
+
+        window.addEventListener('error', function(e) {
+            console.error('发生错误:', e.error);
+        });
+    </script>
+</body>
+</html>
